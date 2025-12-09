@@ -238,6 +238,7 @@ Detailed how-to guides are available in the [`docs/how-to/`](docs/how-to/) direc
 
 | Guide | Description |
 |-------|-------------|
+| [Getting Started](docs/how-to/getting-started.md) | Setup paths for local development and production |
 | [Set Up AWS Bedrock Provider](docs/how-to/setup-bedrock-provider.md) | Configure the agent to use Amazon Bedrock |
 | [Configure GitHub Repository](docs/how-to/configure-github-repository.md) | Set up secrets, variables, labels, and AWS Secrets Manager |
 
