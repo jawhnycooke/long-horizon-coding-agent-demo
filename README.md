@@ -244,7 +244,6 @@ Detailed how-to guides are available in the [`docs/how-to/`](docs/how-to/) direc
 ### Additional Resources
 
 - [Infrastructure Deployment (CDK)](infrastructure/README.md) - Deploy AWS infrastructure
-- [CLAUDE.md](CLAUDE.md) - Detailed developer reference
 
 ## Project Structure
 

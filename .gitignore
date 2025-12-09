@@ -72,5 +72,14 @@ archive_old_scripts/
 # UV lock file (using requirements.txt for dependencies)
 uv.lock
 
-# Temporary workflow documentation
-EPCC_COMMIT.md
+# EPCC workflow documentation (local development artifacts)
+EPCC_*.md
+epcc-*.json
+epcc-*.md
+
+# Claude Code local settings and instructions
+CLAUDE.md
+.claude/
+
+# Technical requirements (local planning)
+TECH_REQ.md
