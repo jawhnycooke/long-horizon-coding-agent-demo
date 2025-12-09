@@ -238,8 +238,8 @@
       "name": "Improved Security Hook Messages",
       "description": "Make security hook rejection messages explain why the action was blocked",
       "priority": "P2",
-      "status": "pending",
-      "passes": false,
+      "status": "complete",
+      "passes": true,
       "acceptanceCriteria": [
         "Path validation errors include attempted path and allowed root",
         "Bash command errors include blocked command and reason",
@@ -248,10 +248,10 @@
         "Errors logged to audit trail"
       ],
       "subtasks": [
-        {"task": "Improve path validation error messages", "status": "pending"},
-        {"task": "Improve bash command error messages", "status": "pending"},
-        {"task": "Improve test verification error messages", "status": "pending"},
-        {"task": "Add suggestions for common errors", "status": "pending"}
+        {"task": "Improve path validation error messages", "status": "complete"},
+        {"task": "Improve bash command error messages", "status": "complete"},
+        {"task": "Improve test verification error messages", "status": "complete"},
+        {"task": "Add suggestions for common errors", "status": "complete"}
       ],
       "source": "Code Review#nice-to-have"
     },
@@ -369,9 +369,9 @@
   ],
   "metrics": {
     "total": 16,
-    "verified": 12,
+    "verified": 13,
     "inProgress": 0,
-    "pending": 4,
-    "percentComplete": 75.0
+    "pending": 3,
+    "percentComplete": 81.25
   }
 }

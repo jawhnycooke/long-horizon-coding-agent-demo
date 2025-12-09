@@ -155,6 +155,32 @@ Blocked patterns:
 - Bulk modification of `tests.json` via sed/awk/jq/python (must use Edit tool with screenshot verification)
 - Commands outside allowlist in `src/config.py`
 
+### Security Error Messages
+
+All security hook rejections provide actionable error messages via `src/error_messages.py`:
+
+**Message Format:**
+```
+🚫 [TYPE] BLOCKED: [brief description]
+
+[Details about what was attempted]
+
+💡 How to fix:
+  • [Specific actionable suggestion]
+  • [Alternative approach]
+```
+
+**Error Categories:**
+
+| Category | Error Types | Example Suggestion |
+|----------|-------------|-------------------|
+| **Path Validation** | Outside project, no project root | Use relative paths within project |
+| **Bash Commands** | Not in allowlist, rm restricted | Use Edit tool for file operations |
+| **Git Operations** | git init blocked | Use existing repository |
+| **Test Verification** | No screenshot, screenshot not viewed | Take and view screenshot first |
+
+All blocked actions are logged to the audit trail for security review.
+
 ### OpenTelemetry Tracing
 
 The agent supports distributed tracing via OpenTelemetry for observability of tool calls.
