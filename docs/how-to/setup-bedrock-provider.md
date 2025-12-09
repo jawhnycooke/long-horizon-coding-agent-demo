@@ -53,6 +53,17 @@ uv pip install -r requirements.txt
 
 ### 2. Configure AWS Credentials
 
+#### Where to Get AWS Credentials
+
+1. Go to **AWS Console** → **IAM** → **Users**
+2. Select your user (or create one with Bedrock permissions)
+3. Click **Security credentials** tab
+4. Under **Access keys**, click **Create access key**
+5. Select **Command Line Interface (CLI)** use case
+6. Copy the Access Key ID and Secret Access Key
+
+**Important**: Save the secret key immediately—it's only shown once.
+
 #### Option A: Named Profile (Recommended for Development)
 
 ```bash
@@ -60,8 +71,8 @@ aws configure --profile ClaudeCode
 ```
 
 Enter:
-- AWS Access Key ID
-- AWS Secret Access Key
+- AWS Access Key ID (from step above)
+- AWS Secret Access Key (from step above)
 - Default region: `us-east-1` (or your preferred Bedrock region)
 - Default output format: `json`
 
