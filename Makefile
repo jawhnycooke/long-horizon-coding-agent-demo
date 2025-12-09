@@ -52,7 +52,7 @@ SCREENSHOT_CDN_DOMAIN := $(shell aws cloudformation describe-stacks --stack-name
 ECR_URI := $(shell aws cloudformation describe-stacks --stack-name $(STACK_NAME) --region $(CF_REGION) --profile $(AWS_PROFILE) --query "Stacks[0].Outputs[?OutputKey=='EcrRepositoryUri'].OutputValue" --output text 2>/dev/null)
 
 # GitHub configuration
-GITHUB_REPO ?= anthropics/riv2025-long-horizon-coding-agent-demo
+GITHUB_REPO ?= anthropics/long-horizon-coding-agent-demo
 
 .PHONY: help launch launch-local deploy-infra status destroy show-config update-runtime-env get-runtime cleanup-test stop-session
 

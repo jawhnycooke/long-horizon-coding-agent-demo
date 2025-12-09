@@ -24,8 +24,8 @@ Run the agent on your machine without GitHub Actions or AWS infrastructure.
 #### 1. Clone and Install
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/riv2025-long-horizon-coding-agent-demo.git
-cd riv2025-long-horizon-coding-agent-demo
+git clone https://github.com/YOUR_USERNAME/long-horizon-coding-agent-demo.git
+cd long-horizon-coding-agent-demo
 uv pip install -r requirements.txt
 ```
 
