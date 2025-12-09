@@ -50,6 +50,7 @@ jobs:
   # Check if the issue is approved and ready to build
   check-approval:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       should_build: ${{ steps.check.outputs.should_build }}
       should_invoke: ${{ steps.check.outputs.should_invoke }}
@@ -195,6 +196,7 @@ jobs:
     needs: check-approval
     if: needs.check-approval.outputs.should_build == 'true' && needs.check-approval.outputs.should_invoke == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     # GLOBAL concurrency group - only one workflow can be in this job at a time
     concurrency:
       group: agentcore-runtime-global-lock
@@ -325,6 +327,7 @@ jobs:
       needs.check-approval.outputs.should_build == 'true' &&
       (needs.check-approval.outputs.should_invoke == 'false' || needs.acquire-runtime-lock.outputs.lock_acquired == 'true')
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     # Same global concurrency group to maintain lock during operations
     concurrency:
       group: agentcore-runtime-global-lock

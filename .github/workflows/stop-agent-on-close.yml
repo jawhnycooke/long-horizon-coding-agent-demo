@@ -14,6 +14,7 @@ env:
 jobs:
   stop-agent-sessions:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     # Only run for issues that had agent activity
     if: |
       contains(github.event.issue.labels.*.name, 'agent-building') ||

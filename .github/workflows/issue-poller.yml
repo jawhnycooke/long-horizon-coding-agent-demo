@@ -26,6 +26,7 @@ jobs:
   # Job 1: Check if an agent session died and needs restart
   check-session-health:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       needs_restart: ${{ steps.health.outputs.needs_restart }}
       issue_number: ${{ steps.state.outputs.issue_number }}
@@ -143,6 +144,7 @@ jobs:
   # Job 2: Poll for new approved issues
   poll-and-trigger:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout repository
@@ -167,7 +169,7 @@ jobs:
           python << 'EOF'
           import os
           import json
-          from github import Github
+          from github import Github, Auth
 
           # Authorized approvers who can trigger builds with 🚀
           # Configure via AUTHORIZED_APPROVERS repository variable (comma-separated)
@@ -186,7 +188,8 @@ jobs:
           LABEL_COMPLETE = "agent-complete"
           LABEL_FAILED = "tests-failed"
 
-          gh = Github(os.environ["GITHUB_TOKEN"])
+          auth = Auth.Token(os.environ["GITHUB_TOKEN"])
+          gh = Github(auth=auth)
           repo = gh.get_repo(os.environ["GITHUB_REPOSITORY"])
 
           # Get all open issues
