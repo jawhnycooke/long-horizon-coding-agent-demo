@@ -186,6 +186,30 @@ For EACH test in tests.json, you MUST follow this exact process:
 - Each test must have: `<TEST_ID>-*.png` AND `<TEST_ID>-console.txt`
 - If there are console errors, FIX THEM before marking the test as passing
 
+### Test Batching Strategy
+
+Group tests by page to minimize navigation overhead:
+
+1. **Identify tests by page** - Review tests.json and group by route (e.g., `/`, `/settings`, `/dashboard`)
+2. **Verify all tests for one page** - Run `--operation full` for each test on that page
+3. **Read ALL screenshots for that page** - View all captured screenshots
+4. **Read ALL console logs for that page** - Verify NO_CONSOLE_ERRORS in each
+5. **Batch edit tests.json** - Mark all passing tests in a single edit session
+6. **Move to next page** - Repeat for the next route
+
+**Example workflow for /dashboard tests:**
+```bash
+# Capture all dashboard tests
+node playwright-test.cjs --url http://localhost:6174/dashboard --test-id dash-v1 --output-dir screenshots/issue-$ISSUE_NUMBER --operation full
+node playwright-test.cjs --url http://localhost:6174/dashboard --test-id dash-v2 --output-dir screenshots/issue-$ISSUE_NUMBER --operation full
+node playwright-test.cjs --url http://localhost:6174/dashboard --test-id dash-v3 --output-dir screenshots/issue-$ISSUE_NUMBER --operation full
+
+# Read all screenshots and console logs for dashboard
+# Then edit tests.json once for all dashboard tests
+```
+
+This reduces total navigation time and allows efficient batch editing.
+
 ### Advanced Testing with Playwright Test
 
 For complex test scenarios that require programmatic interactions (clicks, form inputs, assertions), create Playwright Test spec files:
