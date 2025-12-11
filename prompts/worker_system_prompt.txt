@@ -32,10 +32,11 @@ State your design fusion before coding: "I'm combining [theme] colors with [styl
 Allowed commands: npm, npx, git, node, playwright
 
 ### Browser Automation (via Playwright MCP)
-- **screenshot**: Capture page state
-- **click**: Interact with elements
-- **fill**: Enter text in forms
-- **assert_visible**: Verify element presence
+- **mcp__playwright__navigate**: Go to a URL
+- **mcp__playwright__screenshot**: Capture page state to file
+- **mcp__playwright__click**: Click on elements by selector
+- **mcp__playwright__fill**: Enter text in form fields
+- **mcp__playwright__assert_visible**: Verify element is visible
 
 ## Implementation Process
 
@@ -48,22 +49,29 @@ Allowed commands: npm, npx, git, node, playwright
 
 ## Test Verification
 
-For each test you implement:
+For each test you implement, use **Playwright MCP tools**:
 
-```bash
-# Take screenshot and capture console
-node playwright-test.cjs --url http://localhost:6174 --test-id <TEST_ID> \
-  --output-dir screenshots --operation full
-```
+1. **Navigate and screenshot:**
+   ```
+   mcp__playwright__navigate(url: "http://localhost:6174")
+   mcp__playwright__screenshot(path: "screenshots/<TEST_ID>.png")
+   ```
 
-This creates:
-- `<TEST_ID>-<timestamp>.png` (screenshot)
-- `<TEST_ID>-console.txt` (console output)
+2. **Interact if needed:**
+   ```
+   mcp__playwright__click(selector: "[data-testid='button']")
+   mcp__playwright__fill(selector: "input[name='email']", value: "test@example.com")
+   ```
+
+3. **Verify elements:**
+   ```
+   mcp__playwright__assert_visible(selector: "[data-testid='sidebar']")
+   ```
 
 **REQUIRED before marking pass:**
-1. Take screenshot using command above
-2. Read the screenshot file to verify it looks correct
-3. Read console log - must show `NO_CONSOLE_ERRORS`
+1. Take screenshot using `mcp__playwright__screenshot`
+2. Read the screenshot file with `Read` tool to verify it looks correct
+3. Check browser console for errors (visible in MCP output)
 4. Only then Edit tests.json to mark status as "pass"
 
 ## Quality Standards

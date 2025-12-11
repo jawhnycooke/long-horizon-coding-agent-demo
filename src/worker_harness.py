@@ -326,17 +326,22 @@ Implement this ONE feature:
 ## Tools Available
 
 - **File operations:** Read, Write, Edit, Glob, Grep
-- **Commands:** Bash (npm, git, playwright allowed)
-- **Browser:** Playwright MCP (screenshot, click, fill, assert_visible)
+- **Commands:** Bash (npm, git, node allowed)
+- **Browser (Playwright MCP):**
+  - `mcp__playwright__navigate` - Go to URL
+  - `mcp__playwright__screenshot` - Capture page to file
+  - `mcp__playwright__click` - Click element by selector
+  - `mcp__playwright__fill` - Enter text in form field
+  - `mcp__playwright__assert_visible` - Verify element visible
 
 ## Process
 
 1. Understand the requirement from the description and steps
 2. Implement the feature
 3. Test with Playwright MCP:
-   - Take a screenshot
-   - Verify the expected behavior visually
-   - Check for console errors
+   - `mcp__playwright__navigate` to the app URL
+   - `mcp__playwright__screenshot` to capture the page
+   - Use `Read` tool to view the screenshot and verify visually
 4. Fix any issues you find
 5. Mark test as "pass" in tests.json using the Edit tool
 6. Commit your changes with a descriptive message
