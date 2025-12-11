@@ -33,9 +33,11 @@ flowchart TB
 
 | Component | Role |
 |-----------|------|
-| `aws_runner.py` | Runtime entrypoint (spawns agent.py as subprocess) |
+| `aws_runner.py` | ECS container entrypoint (spawns agent.py as subprocess) |
 | `agent.py` | Session manager (creates SDK client, manages state) |
 | Claude Agent | Implements features, runs tests, commits changes |
+
+**Why ECS Fargate instead of AgentCore?** AgentCore has an 8-hour execution limit. Long-horizon coding sessions can run for many hours, so we use ECS Fargate which has no time limit.
 
 ### Why Single Agent?
 

@@ -32,8 +32,8 @@ flowchart TB
     end
 
     subgraph AWS["AWS Cloud"]
-        subgraph AgentCore["Bedrock AgentCore (ECS Fargate)"]
-            Entrypoint["aws_runner.py<br/>(Runtime Entrypoint)"]
+        subgraph ECS["ECS Fargate (No Time Limit)"]
+            Entrypoint["aws_runner.py<br/>(Container Entrypoint)"]
             SessionMgr["agent.py<br/>(Session Manager)"]
             Claude["🤖 Claude Agent<br/>(Claude Agent SDK)"]
         end
@@ -52,9 +52,9 @@ flowchart TB
     end
 
     Issues -->|"🚀 Approved"| Actions
-    Actions -->|"Invoke"| AgentCore
-    AgentCore --> EFS
-    AgentCore --> ECR
+    Actions -->|"Invoke"| ECS
+    ECS --> EFS
+    ECS --> ECR
     Entrypoint -->|"spawns"| SessionMgr
     SessionMgr -->|"creates"| Claude
     SessionMgr -->|"Heartbeat"| CW
