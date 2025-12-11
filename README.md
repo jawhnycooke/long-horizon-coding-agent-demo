@@ -47,13 +47,15 @@ flowchart TB
     end
 
     subgraph AWS["AWS Cloud"]
-        subgraph AgentCore["Bedrock AgentCore"]
-            Entrypoint["aws_runner.py<br/>(Orchestrator)"]
+        subgraph AgentCore["Bedrock AgentCore (ECS Fargate)"]
+            Entrypoint["aws_runner.py<br/>(Runtime Entrypoint)"]
             Agent["agent.py<br/>(Session Manager)"]
-            SDK["Claude Agent SDK"]
+            subgraph SDK["Claude Agent SDK"]
+                Orch["🎯 Orchestrator<br/>(READ-ONLY)"]
+                Worker["⚙️ Worker<br/>(Executes tasks)"]
+            end
         end
 
-        ECS["ECS Fargate"]
         EFS["EFS<br/>(Persistent Storage)"]
         ECR["ECR<br/>(Container Registry)"]
         CW["CloudWatch<br/>(Metrics & Logs)"]
@@ -69,11 +71,11 @@ flowchart TB
 
     Issues -->|"🚀 Approved"| Actions
     Actions -->|"Invoke"| AgentCore
-    AgentCore --> ECS
-    ECS --> EFS
-    ECS --> ECR
-    Entrypoint --> Agent
-    Agent --> SDK
+    AgentCore --> EFS
+    AgentCore --> ECR
+    Entrypoint -->|"spawns"| Agent
+    Agent -->|"creates client"| SDK
+    Orch -->|"Task tool"| Worker
     Agent -->|"Heartbeat"| CW
     Entrypoint -->|"Fetch secrets"| SM
     Agent -->|"Update labels"| Labels
@@ -81,7 +83,7 @@ flowchart TB
     Actions -->|"Deploy"| S3
     S3 --> CF
 
-    CLI --> Agent
+    CLI -->|"runs directly"| Agent
     Config --> CLI
 ```
 

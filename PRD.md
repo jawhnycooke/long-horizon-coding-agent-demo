@@ -1,270 +1,166 @@
 # Product Requirement Document: Claude Agent SDK Modernization
 
 **Created**: 2025-12-10
-**Version**: 1.0
-**Status**: Draft
-**Complexity**: Complex
+**Version**: 2.0 (Implemented)
+**Status**: Complete
+**Complexity**: Medium
 
 ---
 
 ## Executive Summary
 
-Modernize the long-horizon coding agent to fully leverage the Claude Agent SDK capabilities, implementing an orchestrator pattern with specialized subagents, SDK-native sandbox security, structured outputs, and programmatic agent definitions. This enables parallel task execution, better reliability, and standardized outputs while maintaining the existing ECS Fargate deployment model.
+This project demonstrates **production patterns for long-horizon AI coding sessions** using the Claude Agent SDK and AWS Bedrock AgentCore. The architecture implements patterns from Anthropic's ["Effective Harnesses for Long-Running Agents"](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents) article.
 
-## Problem Statement
+## What Was Built
 
-The current implementation uses the Claude Agent SDK but only leverages basic features:
-- Single monolithic agent handles all tasks sequentially
-- Custom hook-based security instead of SDK sandbox
-- No structured output validation
-- Agents defined implicitly in prompts rather than programmatically
-- No parallel execution capability for independent tasks
+### Two-Agent Architecture (Orchestrator + Worker)
 
-This limits throughput, makes the agent harder to extend, and doesn't take advantage of the SDK's full power.
+```mermaid
+flowchart TB
+    O["🎯 Orchestrator Agent<br/><i>READ-ONLY</i><br/>Tools: Read, Glob, Grep, Task"]
+    W["⚙️ Worker Agent<br/><i>Executes tasks</i><br/>Tools: Read, Write, Edit, Bash"]
 
-## Target Users
-
-### Primary Users
-- **DevOps/Platform Engineers**: Deploy and operate the agent infrastructure
-- **Developers**: Use the agent to build React applications from GitHub issues
-- **Agent Maintainers**: Extend and customize agent behavior
-
-### Pain Points
-- Long build times due to sequential task execution
-- Difficult to add new agent capabilities
-- Inconsistent output formats for test results and progress reports
-- Security model is custom code rather than SDK-managed
-
-## Goals & Success Criteria
-
-### Product Goals
-1. Reduce average build time by 30%+ through parallel subagent execution
-2. Standardize all agent outputs with JSON schema validation
-3. Simplify security model by migrating to SDK sandbox
-4. Enable easy addition of new specialized agents
-
-### Success Metrics
-- Build completion time (target: 30% reduction)
-- Agent reliability (target: 95%+ successful completions)
-- Code maintainability (target: 50% reduction in custom security code)
-
-### Acceptance Criteria
-- [ ] Orchestrator agent coordinates 4+ specialized subagents
-- [ ] All subagents defined programmatically via `AgentDefinition`
-- [ ] SDK sandbox replaces custom bash security hooks
-- [ ] Test results, progress reports, and build artifacts use structured outputs
-- [ ] Existing ECS Fargate deployment continues working
-
-## Core Features
-
-### Must Have (P0 - MVP)
-
-#### 1. Orchestrator Architecture
-**What**: Main agent that delegates work to specialized subagents
-**Why**: Enables parallel execution and separation of concerns
-**Components**:
-- Orchestrator agent (coordinates workflow)
-- Research subagent (codebase exploration, documentation lookup)
-- File operations subagent (bulk file creation, refactoring)
-- Testing subagent (test execution, screenshot verification)
-- Code review subagent (security, style, best practices)
-
-#### 2. Programmatic Agent Definitions
-**What**: Define all agents in Python code using `AgentDefinition`
-**Why**: Better control, type safety, easier testing than markdown files
-**Implementation**:
-```python
-agents={
-    "research": AgentDefinition(
-        description="Explores codebase and gathers context",
-        prompt="You are a research agent...",
-        tools=["Read", "Glob", "Grep", "WebSearch"],
-        model="haiku"  # Fast model for research
-    ),
-    "file-ops": AgentDefinition(
-        description="Handles bulk file operations",
-        prompt="You are a file operations agent...",
-        tools=["Read", "Write", "Edit", "MultiEdit"],
-        model="sonnet"
-    ),
-    # ... more agents
-}
+    O -->|"Task tool"| W
+    W -->|"Results"| O
 ```
 
-#### 3. SDK Sandbox Security
-**What**: Migrate from custom hooks to `SandboxSettings`
-**Why**: SDK-managed security is more robust and maintainable
-**Configuration**:
-```python
-sandbox=SandboxSettings(
-    enabled=True,
-    autoAllowBashIfSandboxed=True,
-    excludedCommands=["docker"],
-    network=SandboxNetworkConfig(
-        allowLocalBinding=True,  # For dev servers
-        allowUnixSockets=["/var/run/docker.sock"]
-    )
-)
+**Orchestrator** (READ-ONLY): Reads state files (`tests.json`, `claude-progress.txt`, git logs), selects next feature, delegates ALL modifications to Worker via Task tool.
+
+**Worker** (Subagent): Executes atomic tasks - file operations, bash commands (npm, playwright), screenshot verification.
+
+### System Architecture
+
+```mermaid
+flowchart TB
+    subgraph AWS["AWS Cloud"]
+        subgraph AgentCore["Bedrock AgentCore (ECS Fargate)"]
+            Entrypoint["aws_runner.py<br/>(Runtime Entrypoint)"]
+            Agent["agent.py<br/>(Session Manager)"]
+            subgraph SDK["Claude Agent SDK"]
+                Orch["🎯 Orchestrator<br/>(READ-ONLY)"]
+                Worker["⚙️ Worker<br/>(Executes tasks)"]
+            end
+        end
+    end
+
+    Entrypoint -->|"spawns subprocess"| Agent
+    Agent -->|"creates client"| SDK
+    Orch -->|"Task tool"| Worker
 ```
 
-#### 4. Structured Output Schemas
-**What**: JSON schema validation for agent outputs
-**Why**: Consistent, parseable outputs for automation
-**Schemas needed**:
-- **Test Results**: `{passed: bool, tests: [{name, status, screenshot?, error?}], summary}`
-- **Progress Reports**: `{phase, completedTasks, remainingTasks, blockers?, metrics}`
-- **Build Artifacts**: `{files: [{path, type, size}], metadata, deploymentConfig}`
+### Key Relationships
 
-### Should Have (P1)
+| Component | Role | Relationship |
+|-----------|------|--------------|
+| `aws_runner.py` | Runtime Entrypoint | Spawns `agent.py` as subprocess |
+| `agent.py` | Session Manager | Creates Claude SDK client with two-agent architecture |
+| Orchestrator | Coordinator | READ-ONLY, delegates via Task tool |
+| Worker | Executor | Performs all file/bash operations |
 
-#### 5. Parallel Subagent Execution
-**What**: Run independent subagents concurrently
-**Why**: Faster builds when tasks don't depend on each other
-**Example**: Research + Code Review can run in parallel during initial analysis
+## Implemented Features
 
-#### 6. Enhanced MCP Server Integration
-**What**: Add custom MCP servers for specialized tooling
-**Why**: Extend agent capabilities without modifying core code
-**Potential servers**:
-- GitHub MCP (enhanced issue/PR management)
-- Playwright MCP (direct browser control)
-- Database MCP (if persistent storage needed)
+### ✅ F031: SDK Agent Architecture
+- `src/agents/base.py` - BaseAgentDefinition class
+- `src/agents/worker.py` - WorkerAgent definition
+- `src/agents/orchestrator.py` - create_orchestrator_client()
+- Two-agent pattern: Orchestrator (READ-ONLY) + Worker
 
-### Nice to Have (P2)
+### ✅ F032: SDK Sandbox Security (Foundation)
+- `src/sandbox.py` - get_sandbox_settings()
+- SandboxSettings configuration
+- Existing hooks preserved for validation
 
-#### 7. Agent Metrics & Observability
-**What**: Structured telemetry for subagent performance
-**Why**: Optimize agent allocation and identify bottlenecks
+### ✅ F033: Structured Output Schemas (Foundation)
+- `src/schemas/test_results.py` - TEST_RESULTS_SCHEMA
+- `src/schemas/progress_report.py` - PROGRESS_REPORT_SCHEMA
+- `src/schemas/build_artifacts.py` - BUILD_ARTIFACTS_SCHEMA
 
-#### 8. Dynamic Agent Scaling
-**What**: Spawn additional subagents based on workload
-**Why**: Handle complex projects with many files/tests
+### ✅ F034: Pattern Documentation
+- `docs/patterns/README.md` - Overview mapping to article
+- `docs/patterns/feature-list.md` - tests.json pattern
+- `docs/patterns/progress-tracking.md` - claude-progress.txt pattern
+- `docs/patterns/session-recovery.md` - Git recovery pattern
+- `docs/patterns/verification.md` - Screenshot workflow pattern
 
-## User Journeys
+### ✅ F035: SDK Integration Examples
+- `examples/basic-orchestrator.py` - Minimal two-agent pattern
+- `examples/with-sandbox.py` - SDK SandboxSettings usage
+- `examples/structured-outputs.py` - JSON schema validation
+- `examples/bedrock-integration.py` - AWS Bedrock configuration
 
-### Primary Journey: Building a React App from GitHub Issue
+### ✅ F036: Orchestrator Prompt
+- `prompts/orchestrator_prompt.txt` - Coordination system prompt
 
-1. **GitHub issue approved** with 🚀 reaction
-2. **Orchestrator agent starts**, reads issue requirements
-3. **Research subagent** explores similar code patterns, gathers context
-4. **Orchestrator plans** implementation based on research
-5. **File operations subagent** creates initial file structure (parallel with step 6)
-6. **Code review subagent** validates architecture decisions
-7. **Orchestrator implements** core features
-8. **Testing subagent** runs E2E tests, captures screenshots
-9. **Orchestrator iterates** based on test failures
-10. **Build artifacts output** with structured metadata
-11. **Progress report posted** to GitHub issue
+### ✅ F037: README Demo Showcase
+- Architecture diagrams showing article patterns
+- "About This Demo" section linking to article
+- Pattern documentation links
 
-### Secondary Journey: Cleanup Session
+## What Is NOT Implemented
 
-1. **Cleanup mode triggered** via state file
-2. **Orchestrator delegates** to specialized cleanup subagent
-3. **Code review subagent** identifies technical debt
-4. **File operations subagent** performs refactoring
-5. **Testing subagent** verifies no regressions
-6. **Structured report** of changes made
+The following from the original v1.0 PRD were **intentionally descoped**:
 
-## Technical Approach
+| Original Feature | Status | Reason |
+|-----------------|--------|--------|
+| 4+ specialized subagents | ❌ Not implemented | Two-agent pattern is simpler and sufficient |
+| Parallel subagent execution | ❌ Not implemented | Sequential delegation works for current needs |
+| Research subagent (haiku) | ❌ Not implemented | Worker handles all tasks |
+| Code review subagent | ❌ Not implemented | Worker handles all tasks |
+| Dynamic agent scaling | ❌ Not implemented | Future enhancement if needed |
 
-### Architecture Overview
+## Implementation Files
+
+### New Files Created
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    Orchestrator Agent                        │
-│  (Coordinates workflow, makes high-level decisions)          │
-└─────────────────────┬───────────────────────────────────────┘
-                      │
-        ┌─────────────┼─────────────┬─────────────┐
-        │             │             │             │
-        ▼             ▼             ▼             ▼
-┌───────────┐ ┌───────────┐ ┌───────────┐ ┌───────────┐
-│  Research │ │ File Ops  │ │  Testing  │ │Code Review│
-│  Subagent │ │ Subagent  │ │ Subagent  │ │ Subagent  │
-│  (haiku)  │ │ (sonnet)  │ │ (sonnet)  │ │  (haiku)  │
-└───────────┘ └───────────┘ └───────────┘ └───────────┘
-     │             │             │             │
-     └─────────────┴─────────────┴─────────────┘
-                      │
-              ┌───────┴───────┐
-              │  SDK Sandbox  │
-              │  (Security)   │
-              └───────────────┘
+src/agents/
+    __init__.py           # Export agent definitions
+    base.py               # BaseAgentDefinition dataclass
+    worker.py             # WorkerAgent definition + prompt
+    orchestrator.py       # create_orchestrator_client()
+
+src/schemas/
+    __init__.py           # Export schemas
+    test_results.py       # TEST_RESULTS_SCHEMA
+    progress_report.py    # PROGRESS_REPORT_SCHEMA
+    build_artifacts.py    # BUILD_ARTIFACTS_SCHEMA
+
+src/sandbox.py            # get_sandbox_settings()
+
+prompts/
+    orchestrator_prompt.txt  # Orchestrator system prompt
+
+docs/patterns/
+    README.md             # Pattern overview
+    feature-list.md       # tests.json pattern
+    progress-tracking.md  # claude-progress.txt pattern
+    session-recovery.md   # Git recovery pattern
+    verification.md       # Screenshot workflow pattern
+
+examples/
+    README.md             # Examples overview
+    basic-orchestrator.py # Two-agent pattern
+    with-sandbox.py       # Sandbox settings
+    structured-outputs.py # JSON schemas
+    bedrock-integration.py # AWS Bedrock
 ```
 
-### Technology Stack
-- **Runtime**: Python 3.11+ with Claude Agent SDK
-- **Agent SDK**: `claude-agent-sdk` (latest)
-- **Deployment**: ECS Fargate (unchanged)
-- **Provider**: Anthropic API or Amazon Bedrock (configurable)
+### Modified Files
 
-### Key Implementation Files
-- `agent.py` - Orchestrator agent with subagent definitions
-- `src/agents/` - New directory for subagent-specific logic
-- `src/schemas/` - JSON schemas for structured outputs
-- `src/sandbox.py` - SDK sandbox configuration
+- `agent.py` - Updated `_create_claude_client()` to use orchestrator pattern
 
-### Migration Strategy
-1. Keep existing `SecurityValidator` hooks during transition
-2. Add SDK sandbox alongside hooks
-3. Validate both produce same security outcomes
-4. Remove custom hooks once SDK sandbox proven
+## Article Pattern Mapping
 
-## Constraints
-
-### Timeline
-- **MVP**: Core orchestrator + 2 subagents (Research, Testing)
-- **Phase 2**: Add File Ops + Code Review subagents
-- **Phase 3**: Structured outputs + parallel execution
-
-### Technical Constraints
-- Must maintain backward compatibility with existing GitHub workflow
-- ECS Fargate deployment model unchanged
-- Support both Anthropic and Bedrock providers
-
-### Security/Compliance
-- SDK sandbox must provide equivalent or better security than current hooks
-- All file operations restricted to project directory
-- Network access limited to required domains
-
-## Out of Scope
-
-- Migrating away from ECS Fargate to AgentCore-managed deployment
-- Real-time streaming UI for agent progress
-- Multi-project concurrent execution
-- Custom model fine-tuning
-
-## Risks
-
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| SDK sandbox behavior differs from current hooks | High | Run both in parallel during migration, compare outcomes |
-| Subagent coordination complexity | Medium | Start with simple orchestrator, add complexity incrementally |
-| Increased token usage from multiple agents | Medium | Use haiku for simple tasks, monitor costs closely |
-| Bedrock compatibility with new SDK features | Medium | Test all features on both providers early |
-
-## Open Questions
-
-1. Should subagents share a conversation context or be fully isolated?
-2. What's the optimal model allocation (opus/sonnet/haiku) per subagent type?
-3. How should subagent failures be handled - retry, escalate to orchestrator, or fail build?
-
-## Dependencies
-
-- Claude Agent SDK v0.1.x+ (for programmatic agents, sandbox)
-- Existing ECS/Fargate infrastructure
-- GitHub Actions workflows (unchanged)
-
-## Next Steps
-
-This PRD feeds into the EPCC workflow. Since this is a **brownfield project** (existing codebase):
-
-1. **Review & approve** this PRD
-2. Run `/epcc-explore` to understand existing agent architecture deeply
-3. Run `/epcc-plan` to create detailed implementation plan
-4. Begin development with `/epcc-code`
-5. Finalize with `/epcc-commit`
+| Article Pattern | Implementation | File Location |
+|-----------------|---------------|---------------|
+| **Feature List (JSON)** | `tests.json` with pass/fail status | `generated-app/tests.json` |
+| **Progress Log** | `claude-progress.txt` for session continuity | `generated-app/claude-progress.txt` |
+| **Init Script** | `init.sh` for dev server startup | `generated-app/init.sh` |
+| **Git Recovery** | Post-commit hooks, auto-push | `src/git_manager.py` |
+| **Session Startup** | State machine reads progress | `agent.py` |
+| **E2E Testing** | Playwright screenshot verification | `src/security.py` |
+| **Two-Agent Pattern** | Orchestrator + Worker | `src/agents/` |
 
 ---
 
-**End of PRD**
+**End of PRD v2.0**
