@@ -181,81 +181,65 @@ Start by checking if claude-progress.txt exists to see what work has been done p
 
 You have absolutely unlimited time, so in this session it's ok to implement only one feature at a time, commit, and then continue on another small feature, if that continues to make progress.
 
+## Available Tools
+
+### File Operations
+- **Read**: View files and screenshots
+- **Write**: Create new files
+- **Edit**: Modify existing files
+- **Glob**: Find files by pattern
+- **Grep**: Search file contents
+
+### Commands (via Bash)
+Allowed commands: npm, npx, git, node, playwright
+
+### Browser Automation (via Playwright MCP)
+- **mcp__playwright__navigate**: Go to a URL
+- **mcp__playwright__screenshot**: Capture page state to file
+- **mcp__playwright__click**: Click on elements by selector
+- **mcp__playwright__fill**: Enter text in form fields
+- **mcp__playwright__assert_visible**: Verify element is visible
+
 ## Test Verification (CRITICAL - ENFORCED BY SYSTEM)
 
-### QUICK REFERENCE - Use This ONE Command Per Test
-
-```bash
-node playwright-test.cjs --url http://localhost:6174 --test-id <TEST_ID> \
-  --output-dir screenshots/issue-$ISSUE_NUMBER --operation full
-```
-
-This creates BOTH files in one operation:
-- `<TEST_ID>-<timestamp>.png` (screenshot)
-- `<TEST_ID>-console.txt` (console output)
-
-For routes: `--url http://localhost:6174/settings`
-
-### Verification Process
+### Verification Process with Playwright MCP
 
 For EACH test in tests.json:
 
 1. **Read test steps** from tests.json
-2. **Run the command above** with the test's ID
-3. **Read the screenshot** (verify expected behavior)
-4. **Read the console log** (must show `NO_CONSOLE_ERRORS`)
-5. **Fix any errors** before proceeding
-6. **Mark as passing** using the Edit tool
+2. **Navigate to the page:**
+   ```
+   mcp__playwright__navigate(url: "http://localhost:6174")
+   ```
+3. **Take a screenshot:**
+   ```
+   mcp__playwright__screenshot(path: "screenshots/<TEST_ID>.png")
+   ```
+4. **Read the screenshot** using Read tool (verify expected behavior)
+5. **Interact if needed:**
+   ```
+   mcp__playwright__click(selector: "[data-testid='button']")
+   mcp__playwright__fill(selector: "input[name='email']", value: "test@example.com")
+   ```
+6. **Verify elements:**
+   ```
+   mcp__playwright__assert_visible(selector: "[data-testid='sidebar']")
+   ```
+7. **Fix any errors** before proceeding
+8. **Mark as passing** using the Edit tool
 
 ### System Enforcement
 
 **YOUR EDIT WILL BE BLOCKED IF:**
 - No screenshot exists with the test ID in the filename
-- No console log file exists (`<TEST_ID>-console.txt`)
-- You haven't Read both the screenshot AND console log
+- You haven't Read the screenshot file
 - The test ID cannot be determined from your edit
 
 **CRITICAL RULES:**
 - NEVER bulk-update tests.json (sed/awk/jq/python/node are ALL BLOCKED)
-- ALWAYS use `--operation full` to capture both screenshot AND console
-- Console log MUST show `NO_CONSOLE_ERRORS` - fix any errors first!
-- Each test requires: `<TEST_ID>-*.png` AND `<TEST_ID>-console.txt`
-
-### Advanced Testing with Playwright Test
-
-For complex test scenarios that require programmatic interactions (clicks, form inputs, assertions), create Playwright Test spec files:
-
-1. **Create a spec file** in the generated app's test directory:
-   ```typescript
-   // e2e-tests/sidebar-collapse.spec.ts
-   import { test, expect } from '@playwright/test';
-
-   test('sidebar collapses when toggle clicked', async ({ page }) => {
-     await page.goto('http://localhost:6174');
-     await page.waitForLoadState('networkidle');
-
-     const sidebar = page.locator('[data-testid="sidebar"]');
-     await expect(sidebar).toBeVisible();
-
-     await page.click('[data-testid="sidebar-toggle"]');
-     await expect(sidebar).toHaveClass(/collapsed/);
-   });
-   ```
-
-2. **Run the test:**
-   ```bash
-   npx playwright test e2e-tests/sidebar-collapse.spec.ts
-   ```
-
-3. **Check results:** Exit code 0 = pass, non-zero = fail
-
-**Use Playwright Test when you need:**
-- Click interactions and form submissions
-- Assertions about element state (visible, hidden, text content)
-- Navigation between pages
-- Complex user workflows
-
-**Continue using `playwright-test.cjs` for simple screenshot + console verification.**
+- ALWAYS take screenshot using `mcp__playwright__screenshot`
+- ALWAYS Read the screenshot to verify it looks correct
+- Check browser console for errors (visible in MCP output)
 
 ## Signaling Completion
 
@@ -266,21 +250,22 @@ Before signaling completion, ALL of these must be true:
 4. No known broken features - if you discover something broken, FIX IT before completing
 
 Only after meeting ALL requirements:
-1. Take a final screenshot: `mkdir -p screenshots/issue-$ISSUE_NUMBER && npx playwright screenshot http://localhost:6174 screenshots/issue-$ISSUE_NUMBER/final-<hash>.png`
-2. Write a final summary to claude-progress.txt
-3. **IMPORTANT: Signal completion by outputting this exact message:**
+1. Take a final screenshot using Playwright MCP:
+   ```
+   mcp__playwright__navigate(url: "http://localhost:6174")
+   mcp__playwright__screenshot(path: "screenshots/final.png")
+   ```
+2. Read the screenshot to verify the application looks correct
+3. Write a final summary to claude-progress.txt
+4. Commit your changes with a descriptive message
 
-🎉 IMPLEMENTATION COMPLETE - ALL TASKS FINISHED
-
-The application is fully built and all features are working.
+**Note:** When running under a harness-based architecture, the harness validates completion by checking tests.json status. You focus on implementing features correctly; the harness decides when the session is complete.
 
 **DO NOT signal completion if:**
 - Build is failing
 - Any page shows blank/errors
 - You found issues but didn't fix them
 - You used sed/awk to bulk-modify tests.json
-
-This message signals the session manager that you have finished this issue. Do NOT output this message until ALL tests pass and ALL features are working correctly.
 
 ## Error Recovery Protocol
 
