@@ -61,12 +61,6 @@ The original design included an Orchestrator + Worker pattern, but this added un
 - `docs/patterns/session-recovery.md` - Git recovery pattern
 - `docs/patterns/verification.md` - Screenshot workflow pattern
 
-### SDK Integration Examples
-- `examples/basic-agent.py` - Minimal agent with security hooks
-- `examples/with-sandbox.py` - SDK SandboxSettings usage
-- `examples/structured-outputs.py` - JSON schema validation
-- `examples/bedrock-integration.py` - AWS Bedrock configuration
-
 ## Article Pattern Mapping
 
 | Article Pattern | Implementation | File Location |
