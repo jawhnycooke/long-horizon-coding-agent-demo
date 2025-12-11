@@ -19,25 +19,21 @@ This project showcases **production patterns for long-horizon AI coding sessions
 
 ### Two-Agent Architecture
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Orchestrator Agent                        │
-│  (Coordinates workflow, makes high-level decisions)          │
-│  - Reads tests.json, claude-progress.txt, git logs           │
-│  - Selects next feature to implement                         │
-│  - Delegates atomic tasks to Worker                          │
-│  - Manages session state and clean shutdown                  │
-└─────────────────────┬───────────────────────────────────────┘
-                      │ Task tool
-                      ▼
-┌─────────────────────────────────────────────────────────────┐
-│                      Worker Agent                            │
-│  (Executes atomic tasks)                                     │
-│  - File operations (Read/Write/Edit)                         │
-│  - Bash commands (npm, playwright)                           │
-│  - Screenshot verification                                   │
-│  - Returns structured results                                │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Orchestrator["Orchestrator Agent (READ-ONLY)"]
+        direction TB
+        OTools["📖 Tools: Read, Glob, Grep, Task"]
+        OActions["• Reads tests.json, claude-progress.txt, git state<br/>• Selects next feature to implement<br/>• Delegates ALL modifications to Worker via Task tool<br/>• Manages session continuity and clean shutdown"]
+    end
+
+    Orchestrator -->|"Task tool<br/>(required for all changes)"| Worker
+
+    subgraph Worker["Worker Agent (Subagent)"]
+        direction TB
+        WTools["🛠️ Tools: Read, Write, Edit, MultiEdit, Glob, Grep, Bash"]
+        WActions["• File operations and code modifications<br/>• Bash commands (npm, playwright, git, pwd)<br/>• Screenshot verification workflow<br/>• Returns structured results to Orchestrator"]
+    end
 ```
 
 See [Pattern Documentation](docs/patterns/) for detailed explanations of each pattern.
