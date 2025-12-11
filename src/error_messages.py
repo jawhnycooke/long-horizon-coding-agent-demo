@@ -226,10 +226,10 @@ class SecurityErrorMessages:
             f"Bulk modification of test results is not allowed.\n"
             f"Each test must be verified individually before marking as passed.\n\n"
             f"💡 How to fix:\n"
-            f"  1. Run the test to verify it works\n"
-            f"  2. Take a screenshot: npx playwright screenshot <url> screenshots/<test-id>.png\n"
-            f"  3. Capture console output using playwright-test.cjs\n"
-            f"  4. View both files using the Read tool\n"
+            f"  1. Navigate to the page: mcp__playwright__navigate(url: 'http://localhost:6174')\n"
+            f"  2. Take a screenshot: mcp__playwright__screenshot(path: 'screenshots/issue-X/<test-id>-<timestamp>.png')\n"
+            f"  3. Check MCP output for console errors\n"
+            f"  4. View screenshot using Read tool\n"
             f"  5. Use the Edit tool to update that specific test's 'passes' field\n\n"
             f"💡 Why this is required:\n"
             f"  • Prevents falsely marking tests as passing\n"
@@ -254,12 +254,12 @@ class SecurityErrorMessages:
             f"💡 How to fix:\n"
             f"  1. Verify the test actually passes by running it\n"
             f"  2. Take a screenshot as evidence\n"
-            f"  3. Capture and review console output\n"
+            f"  3. Check MCP output for console errors\n"
             f"  4. Use the Edit tool to update the specific test entry\n\n"
             f"💡 Example workflow:\n"
-            f"  • Run: node playwright-test.cjs --test-id <id> --operation full\n"
-            f"  • Read: screenshots/issue-X/<id>-console.txt\n"
-            f"  • Read: screenshots/issue-X/<id>-<timestamp>.png\n"
+            f"  • Navigate: mcp__playwright__navigate(url: 'http://localhost:6174')\n"
+            f"  • Screenshot: mcp__playwright__screenshot(path: 'screenshots/issue-X/<id>-<timestamp>.png')\n"
+            f"  • Read: screenshots/issue-X/<id>-<timestamp>.png (verify visually)\n"
             f"  • Edit: tests.json (change specific test's passes: true)"
         )
 
@@ -282,13 +282,10 @@ class SecurityErrorMessages:
             f"Pattern searched: {screenshot_pattern}\n\n"
             f"You cannot mark a test as passing without screenshot evidence.\n\n"
             f"💡 How to fix:\n"
-            f"  1. Navigate to the page/state being tested\n"
-            f"  2. Take a screenshot:\n"
-            f"     npx playwright screenshot http://localhost:6174 "
-            f"screenshots/issue-{issue_number}/{test_id}-$(date +%s | tail -c 5).png\n\n"
-            f"  3. OR use the full test command:\n"
-            f"     node playwright-test.cjs --url http://localhost:6174 --test-id {test_id} "
-            f"--output-dir screenshots/issue-{issue_number} --operation full\n\n"
+            f"  1. Navigate to the page: mcp__playwright__navigate(url: 'http://localhost:6174')\n"
+            f"  2. Take a screenshot with correct path:\n"
+            f"     mcp__playwright__screenshot(path: 'screenshots/issue-{issue_number}/{test_id}-<timestamp>.png')\n\n"
+            f"  3. Check MCP output for console errors\n"
             f"  4. View the screenshot using the Read tool\n"
             f"  5. Then mark the test as passing"
         )
@@ -312,7 +309,7 @@ class SecurityErrorMessages:
             f"  1. Use the Read tool to view the screenshot:\n"
             f"     Read file: {screenshot_path}\n\n"
             f"  2. Verify the screenshot shows the expected behavior\n"
-            f"  3. Also view the console log file\n"
+            f"  3. Check that MCP output showed no console errors\n"
             f"  4. Then mark the test as passing"
         )
 
@@ -320,7 +317,10 @@ class SecurityErrorMessages:
     def test_no_console_log(
         test_id: str, issue_number: str, console_pattern: str
     ) -> str:
-        """Generate error message when no console log exists for test.
+        """Generate info message when no console log file exists.
+
+        Note: Console log files are optional with MCP workflow.
+        Console errors are shown directly in Playwright MCP output.
 
         Args:
             test_id: The test ID being marked as passing
@@ -328,44 +328,42 @@ class SecurityErrorMessages:
             console_pattern: The pattern that was searched
 
         Returns:
-            Formatted error message
+            Formatted info message
         """
         return (
-            f"🚫 TEST BLOCKED: No console log found for '{test_id}'\n\n"
+            f"ℹ️ No console log file for '{test_id}'\n\n"
             f"Pattern searched: {console_pattern}\n\n"
-            f"Console output must be captured to verify there are no errors.\n\n"
-            f"💡 How to fix:\n"
-            f"  1. Capture screenshot AND console output together:\n"
-            f"     node playwright-test.cjs --url http://localhost:6174 --test-id {test_id} "
-            f"--output-dir screenshots/issue-{issue_number} --operation full\n\n"
-            f"  2. This creates both files:\n"
-            f"     • screenshots/issue-{issue_number}/{test_id}-<timestamp>.png\n"
-            f"     • screenshots/issue-{issue_number}/{test_id}-console.txt\n\n"
-            f"  3. View both files using the Read tool\n"
-            f"  4. Fix any console errors before marking as passing"
+            f"With Playwright MCP, console errors are shown in the tool output.\n"
+            f"Console log files are optional.\n\n"
+            f"💡 Verification:\n"
+            f"  1. Check MCP output from mcp__playwright__navigate for console errors\n"
+            f"  2. Ensure screenshot exists and was viewed\n"
+            f"  3. Fix any console errors before marking as passing"
         )
 
     @staticmethod
     def test_console_not_viewed(test_id: str, console_path: str) -> str:
-        """Generate error message when console log exists but wasn't viewed.
+        """Generate warning when console log exists but wasn't viewed.
+
+        Note: Console log files are optional with MCP workflow.
+        This is a warning, not a blocker.
 
         Args:
             test_id: The test ID being marked as passing
             console_path: Path to the console log that wasn't viewed
 
         Returns:
-            Formatted error message
+            Formatted warning message
         """
         return (
-            f"🚫 TEST BLOCKED: Console log not verified for '{test_id}'\n\n"
-            f"Console log exists: {console_path}\n\n"
-            f"You must verify there are no console errors before marking as passing.\n\n"
-            f"💡 How to fix:\n"
+            f"⚠️ Console log exists but wasn't viewed for '{test_id}'\n\n"
+            f"Console log: {console_path}\n\n"
+            f"Consider viewing the console log for additional verification.\n\n"
+            f"💡 Recommended:\n"
             f"  1. Use the Read tool to view the console log:\n"
             f"     Read file: {console_path}\n\n"
             f"  2. Check for any errors or warnings\n"
-            f"  3. The log should show 'NO_CONSOLE_ERRORS' for clean tests\n"
-            f"  4. Fix any errors before marking as passing"
+            f"  3. With MCP, console errors also appear in tool output"
         )
 
     @staticmethod
