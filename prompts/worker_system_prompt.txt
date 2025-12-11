@@ -51,27 +51,30 @@ Allowed commands: npm, npx, git, node, playwright
 
 For each test you implement, use **Playwright MCP tools**:
 
-1. **Navigate and screenshot:**
+1. **Navigate and screenshot** (use issue number and test ID in path):
    ```
    mcp__playwright__navigate(url: "http://localhost:6174")
-   mcp__playwright__screenshot(path: "screenshots/<TEST_ID>.png")
+   mcp__playwright__screenshot(path: "screenshots/issue-$ISSUE_NUMBER/<TEST_ID>-$(date +%s).png")
    ```
+   Example: `screenshots/issue-42/sidebar-collapse-1702345678.png`
 
-2. **Interact if needed:**
+2. **Check MCP output for console errors** - Playwright MCP includes console messages in its response. Look for `console.error` or warnings.
+
+3. **Interact if needed:**
    ```
    mcp__playwright__click(selector: "[data-testid='button']")
    mcp__playwright__fill(selector: "input[name='email']", value: "test@example.com")
    ```
 
-3. **Verify elements:**
+4. **Verify elements:**
    ```
    mcp__playwright__assert_visible(selector: "[data-testid='sidebar']")
    ```
 
 **REQUIRED before marking pass:**
-1. Take screenshot using `mcp__playwright__screenshot`
-2. Read the screenshot file with `Read` tool to verify it looks correct
-3. Check browser console for errors (visible in MCP output)
+1. Take screenshot with correct path: `screenshots/issue-$ISSUE_NUMBER/<TEST_ID>-<timestamp>.png`
+2. Check MCP output for console errors (fix any errors first)
+3. Read the screenshot file with `Read` tool to verify it looks correct
 4. Only then Edit tests.json to mark status as "pass"
 
 ## Quality Standards

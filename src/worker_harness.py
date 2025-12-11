@@ -339,16 +339,24 @@ Implement this ONE feature:
 1. Understand the requirement from the description and steps
 2. Implement the feature
 3. Test with Playwright MCP:
-   - `mcp__playwright__navigate` to the app URL
-   - `mcp__playwright__screenshot` to capture the page
+   - `mcp__playwright__navigate` to the app URL (http://localhost:6174)
+   - `mcp__playwright__screenshot` with path: `screenshots/issue-{self.config.issue_number}/{task.id}-<timestamp>.png`
+   - **Check MCP output for console errors** - fix any errors before proceeding
    - Use `Read` tool to view the screenshot and verify visually
-4. Fix any issues you find
+4. Fix any issues you find (console errors, visual problems)
 5. Mark test as "pass" in tests.json using the Edit tool
 6. Commit your changes with a descriptive message
+
+## Console Error Detection
+
+Playwright MCP includes console output in its response. After navigation:
+- Review MCP output for `console.error` or `console.warn` messages
+- Fix errors before marking test as passing
 
 ## Constraints
 
 - Work ONLY on this test - do not touch other features
+- Screenshot path MUST match: `screenshots/issue-{self.config.issue_number}/{task.id}-*.png`
 - Screenshot verification is REQUIRED before marking pass
 - Commit when done (or when stuck after 3 attempts)
 - If stuck, update claude-progress.txt with what you tried

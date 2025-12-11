@@ -211,35 +211,44 @@ For EACH test in tests.json:
    ```
    mcp__playwright__navigate(url: "http://localhost:6174")
    ```
-3. **Take a screenshot:**
+3. **Take a screenshot** (use issue number and test ID in path):
    ```
-   mcp__playwright__screenshot(path: "screenshots/<TEST_ID>.png")
+   mcp__playwright__screenshot(path: "screenshots/issue-$ISSUE_NUMBER/<TEST_ID>-$(date +%s).png")
    ```
-4. **Read the screenshot** using Read tool (verify expected behavior)
-5. **Interact if needed:**
+   Example: `screenshots/issue-42/sidebar-collapse-1702345678.png`
+4. **Check MCP output for console errors** - Playwright MCP includes console messages in its response. Look for errors/warnings before proceeding.
+5. **Read the screenshot** using Read tool (verify expected behavior)
+6. **Interact if needed:**
    ```
    mcp__playwright__click(selector: "[data-testid='button']")
    mcp__playwright__fill(selector: "input[name='email']", value: "test@example.com")
    ```
-6. **Verify elements:**
+7. **Verify elements:**
    ```
    mcp__playwright__assert_visible(selector: "[data-testid='sidebar']")
    ```
-7. **Fix any errors** before proceeding
-8. **Mark as passing** using the Edit tool
+8. **Fix any errors** (console errors or visual issues) before proceeding
+9. **Mark as passing** using the Edit tool
+
+### Console Error Detection
+
+Playwright MCP includes console output in its response. After each navigation or interaction:
+- **Review the MCP tool output** for any `console.error` or `console.warn` messages
+- **Fix errors before marking test as passing** - React warnings, undefined errors, network failures
+- For critical apps, add an error boundary that displays errors visibly on the page
 
 ### System Enforcement
 
 **YOUR EDIT WILL BE BLOCKED IF:**
-- No screenshot exists with the test ID in the filename
+- No screenshot exists matching pattern: `screenshots/issue-{issue_number}/{test_id}-*.png`
 - You haven't Read the screenshot file
 - The test ID cannot be determined from your edit
 
 **CRITICAL RULES:**
 - NEVER bulk-update tests.json (sed/awk/jq/python/node are ALL BLOCKED)
-- ALWAYS take screenshot using `mcp__playwright__screenshot`
+- ALWAYS use correct screenshot path: `screenshots/issue-$ISSUE_NUMBER/<TEST_ID>-<timestamp>.png`
 - ALWAYS Read the screenshot to verify it looks correct
-- Check browser console for errors (visible in MCP output)
+- ALWAYS check MCP output for console errors before marking pass
 
 ## Signaling Completion
 

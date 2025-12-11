@@ -777,16 +777,20 @@ class SecurityValidator:
         tool_input: dict[str, Any],
         project_root: str | None,
     ) -> dict[str, Any] | None:
-        """Validate that screenshot AND console check exist and were viewed before marking test as passing.
+        """Validate that screenshot exists and was viewed before marking test as passing.
 
         This prevents the agent from claiming tests pass without actually running
         and verifying them. The agent must:
         1. Execute the test steps
         2. Take a screenshot with the test ID in the filename
-        3. Capture console output to a file
-        4. View both the screenshot and console file using the Read tool
-        5. Verify no console errors exist
-        6. Only then can they mark the test as passing
+           (path: screenshots/issue-{issue_number}/{test_id}-*.png)
+        3. View the screenshot using the Read tool
+        4. Check MCP output for console errors (shown in Playwright MCP response)
+        5. Only then can they mark the test as passing
+
+        Note: Console log files are optional. With Playwright MCP, console errors
+        are visible in the MCP tool output, so separate console.txt files are not
+        required.
 
         Args:
             tool_input: Tool input data containing file_path, old_string, new_string
@@ -853,34 +857,29 @@ class SecurityValidator:
             return _deny_response(error_msg)
 
         # =====================================================================
-        # Check 3: Console log file must exist
+        # Console Log Check (Optional - MCP shows console in output)
         # =====================================================================
+        # With Playwright MCP, console errors are visible in the MCP tool output.
+        # Console log files are no longer required but checked if present.
         console_pattern = (
             f"{project_root}/screenshots/issue-{issue_number}/{test_id}-console.txt"
         )
         console_files = glob.glob(console_pattern)
 
-        if not console_files:
-            error_msg = SecurityErrorMessages.test_no_console_log(
-                test_id, issue_number, console_pattern
-            )
-            print(f"🚨 BLOCKED: No console log found for test '{test_id}'")
-            print(f"   Pattern: {console_pattern}")
-            return _deny_response(error_msg)
-
-        # =====================================================================
-        # Check 4: Console log file must have been viewed
-        # =====================================================================
-        console_viewed = any(was_screenshot_viewed(f) for f in console_files)
-        if not console_viewed:
-            error_msg = SecurityErrorMessages.test_console_not_viewed(
-                test_id, console_files[0]
-            )
-            print(f"🚨 BLOCKED: Console log exists for test '{test_id}' but not viewed")
-            return _deny_response(error_msg)
+        if console_files:
+            # Console log exists - verify it was viewed
+            console_viewed = any(was_screenshot_viewed(f) for f in console_files)
+            if not console_viewed:
+                print(f"⚠️ Console log exists for test '{test_id}' but not viewed")
+                print(f"   Consider viewing: {console_files[0]}")
+            else:
+                print(f"✅ Console log for '{test_id}' was viewed")
+        else:
+            # No console log file - that's OK with MCP (console shown in tool output)
+            print(f"ℹ️ No console log file for '{test_id}' (MCP shows console in output)")
 
         print(
-            f"✅ Test '{test_id}' verified: screenshot and console log exist and were viewed"
+            f"✅ Test '{test_id}' verified: screenshot exists and was viewed"
         )
         return None  # Allow the edit
 
