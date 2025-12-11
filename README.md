@@ -19,27 +19,21 @@ This project showcases **production patterns for long-horizon AI coding sessions
 
 ### Two-Agent Architecture
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Orchestrator Agent                        │
-│  (Coordinates workflow, READ-ONLY)                           │
-│  Tools: Read, Glob, Grep, Task                               │
-│  - Reads tests.json, claude-progress.txt, git state          │
-│  - Selects next feature to implement                         │
-│  - Delegates ALL modifications to Worker via Task tool       │
-│  - Manages session continuity and clean shutdown             │
-└─────────────────────┬───────────────────────────────────────┘
-                      │ Task tool (required for all changes)
-                      ▼
-┌─────────────────────────────────────────────────────────────┐
-│                      Worker Agent (Subagent)                 │
-│  (Executes ALL atomic tasks)                                 │
-│  Tools: Read, Write, Edit, MultiEdit, Glob, Grep, Bash       │
-│  - File operations and code modifications                    │
-│  - Bash commands (npm, playwright, git, pwd)                 │
-│  - Screenshot verification workflow                          │
-│  - Returns structured results to Orchestrator                │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Orchestrator["Orchestrator Agent (READ-ONLY)"]
+        direction TB
+        OTools["📖 Tools: Read, Glob, Grep, Task"]
+        OActions["• Reads tests.json, claude-progress.txt, git state<br/>• Selects next feature to implement<br/>• Delegates ALL modifications to Worker via Task tool<br/>• Manages session continuity and clean shutdown"]
+    end
+
+    Orchestrator -->|"Task tool<br/>(required for all changes)"| Worker
+
+    subgraph Worker["Worker Agent (Subagent)"]
+        direction TB
+        WTools["🛠️ Tools: Read, Write, Edit, MultiEdit, Glob, Grep, Bash"]
+        WActions["• File operations and code modifications<br/>• Bash commands (npm, playwright, git, pwd)<br/>• Screenshot verification workflow<br/>• Returns structured results to Orchestrator"]
+    end
 ```
 
 See [Pattern Documentation](docs/patterns/) for detailed explanations of each pattern.
