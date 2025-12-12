@@ -15,7 +15,7 @@
 # - Run init.sh and smoke tests before agent starts
 # - Select ONE failing test for the agent to implement
 # - Run Claude agent with Playwright MCP for browser automation
-# - Validate completion via tests.json (harness decides, not agent)
+# - Validate completion via feature_list.json (harness decides, not agent)
 # - Commit and push changes to git
 # - Exit with appropriate status code
 
