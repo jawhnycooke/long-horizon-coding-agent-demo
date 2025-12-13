@@ -351,38 +351,50 @@ Implement this ONE feature:
 ## Tools Available
 
 - **File operations:** Read, Write, Edit, Glob, Grep
-- **Commands:** Bash (npm, git, node allowed)
-- **Browser (Playwright MCP):**
-  - `mcp__playwright__navigate` - Go to URL
-  - `mcp__playwright__screenshot` - Capture page to file
-  - `mcp__playwright__click` - Click element by selector
-  - `mcp__playwright__fill` - Enter text in form field
-  - `mcp__playwright__assert_visible` - Verify element visible
+- **Commands:** Bash (npm, git, node, playwright allowed)
+- **Browser (Playwright CLI via Bash):**
+  - Screenshot + console: `node playwright-test.cjs --url URL --test-id ID --output-dir DIR --operation full`
+  - Simple screenshot: `npx playwright screenshot URL OUTPUT.png`
+  - Full page: `npx playwright screenshot --full-page URL OUTPUT.png`
 
 ## Process
 
 1. Understand the requirement from the description and steps
 2. Implement the feature
-3. Test with Playwright MCP:
-   - `mcp__playwright__navigate` to the app URL (http://localhost:6174)
-   - `mcp__playwright__screenshot` with path: `screenshots/issue-{self.config.issue_number}/{task.id}-<timestamp>.png`
-   - **Check MCP output for console errors** - fix any errors before proceeding
-   - Use `Read` tool to view the screenshot and verify visually
-4. Fix any issues you find (console errors, visual problems)
-5. Mark test as "pass" in tests.json using the Edit tool
-6. Commit your changes with a descriptive message
+3. Test with Playwright CLI:
+   ```bash
+   node playwright-test.cjs \\
+     --url http://localhost:6174 \\
+     --test-id {task.id} \\
+     --output-dir screenshots/issue-{self.config.issue_number} \\
+     --operation full
+   ```
+   This generates BOTH:
+   - `screenshots/issue-{self.config.issue_number}/{task.id}-<timestamp>.png` (screenshot)
+   - `screenshots/issue-{self.config.issue_number}/{task.id}-console.txt` (console log)
+
+4. Read the console log with Read tool:
+   - Check for `NO_CONSOLE_ERRORS` (good)
+   - If shows `ERRORS:` - fix those errors before proceeding
+
+5. Read the screenshot with Read tool to verify visually
+
+6. Mark test as "pass" in tests.json using the Edit tool
+
+7. Commit your changes with a descriptive message
 
 ## Console Error Detection
 
-Playwright MCP includes console output in its response. After navigation:
-- Review MCP output for `console.error` or `console.warn` messages
-- Fix errors before marking test as passing
+After running playwright-test.cjs, the console log file will contain:
+- `NO_CONSOLE_ERRORS` - Safe to proceed
+- `ERRORS:\n<list of errors>` - Must fix before marking pass
 
 ## Constraints
 
 - Work ONLY on this test - do not touch other features
 - Screenshot path MUST match: `screenshots/issue-{self.config.issue_number}/{task.id}-*.png`
-- Screenshot verification is REQUIRED before marking pass
+- Console log MUST be read and show NO_CONSOLE_ERRORS
+- Both screenshot AND console log verification REQUIRED before marking pass
 - Commit when done (or when stuck after 3 attempts)
 - If stuck, update claude-progress.txt with what you tried
 
@@ -439,7 +451,10 @@ Begin implementing {task.id} now.
             return f"[Error loading progress: {e}]"
 
     def create_agent_client(self, system_prompt: str) -> ClaudeSDKClient:
-        """Create the Claude SDK client with Playwright MCP.
+        """Create the Claude SDK client for the worker agent.
+
+        Browser automation is handled via Bash + Playwright CLI commands
+        (npx playwright, node playwright-test.cjs) rather than MCP.
 
         Args:
             system_prompt: System prompt for the agent
@@ -480,14 +495,12 @@ Begin implementing {task.id} now.
         model_id = get_model_id("sonnet", provider)
         print(f"[WORKER] 🤖 Using model: {model_id} (provider: {provider.value})")
 
-        # MCP servers - Playwright for browser automation
-        mcp_servers = {
-            "playwright": {
-                "type": "stdio",
-                "command": "npx",
-                "args": ["-y", "@anthropic/mcp-server-playwright"],
-            },
-        }
+        # MCP servers - Empty, browser automation via Bash + Playwright CLI
+        # This matches the Anthropic reference implementation which uses:
+        # - npx playwright screenshot URL OUTPUT.png
+        # - node playwright-test.cjs (for screenshot + console capture)
+        # See: https://github.com/anthropics/riv2025-long-horizon-coding-agent-demo
+        mcp_servers: dict[str, Any] = {}
 
         # Security hook wrappers
         async def path_hook(input_data: dict, tool_use_id: str | None = None, context: Any = None):
@@ -515,8 +528,12 @@ Begin implementing {task.id} now.
                 allowed_tools=[
                     "Read", "Write", "Edit", "Glob", "Grep",
                     "Bash", "MultiEdit", "think",
-                    "mcp__playwright__*",  # Playwright MCP tools
+                    # Browser automation via Bash: npx playwright, node playwright-test.cjs
                 ],
+                # Bypass permission prompts for headless container execution
+                # Security is enforced via hooks below, not interactive prompts
+                # See: https://platform.claude.com/docs/en/agent-sdk/permissions
+                permission_mode="bypassPermissions",
                 hooks={
                     "PreToolUse": [
                         HookMatcher(matcher="*", hooks=[path_hook], timeout=120),  # 2 min for path validation
