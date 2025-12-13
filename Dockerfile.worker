@@ -15,10 +15,13 @@
 # - Run init.sh and smoke tests before agent starts
 # - Select ONE failing test for the agent to implement
 # - Run Claude agent with Playwright MCP for browser automation
-# - Validate completion via tests.json (harness decides, not agent)
+# - Validate completion via feature_list.json (harness decides, not agent)
 # - Commit and push changes to git
 # - Exit with appropriate status code
 
+# NOTE: When building on Apple Silicon (arm64) for AWS deployment (x86_64), use:
+#   docker build --platform linux/amd64 -f Dockerfile.worker -t worker .
+# This ensures compatibility with AWS ECS Fargate, which uses x86_64 architecture.
 FROM public.ecr.aws/docker/library/python:3.12-slim
 
 # Install system dependencies including Node.js 20 for MCP servers
@@ -61,22 +64,31 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy package.json for Node.js dependencies (Claude Agent SDK, etc.)
+COPY package.json package-lock.json* ./
+
+# Install Node.js dependencies BEFORE global installs and playwright
+# This ensures package.json dependencies are available for MCP servers
+RUN npm ci --ignore-scripts || npm install --ignore-scripts
+
+# Install Claude Code CLI (required by Claude Agent SDK)
+RUN npm install -g @anthropic-ai/claude-code
+
+# Install Playwright for browser automation (screenshots, testing)
+# Must come AFTER npm install so npx can resolve dependencies correctly
+RUN npx playwright install chromium
+
 # Copy worker application code
 # worker_main.py - Harness-based entry point (preferred)
 # claude_code_agent.py - Legacy entry point (backward compatibility)
 COPY worker_main.py .
 COPY claude_code_agent.py .
 COPY src/ ./src/
+# prompts/ includes subdirectories (e.g., canopy/) - Docker COPY handles recursively
 COPY prompts/ ./prompts/
 COPY frontend-scaffold-template/ ./frontend-scaffold-template/
 COPY prompt_template.txt .
 COPY state_management.txt .
-
-# Install Claude Code CLI (required by Claude Agent SDK)
-RUN npm install -g @anthropic-ai/claude-code
-
-# Install Playwright for browser automation (screenshots, testing)
-RUN npx playwright install chromium
 
 # Create workspace directories
 RUN mkdir -p /app/workspace /projects
